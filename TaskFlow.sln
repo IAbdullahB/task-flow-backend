@@ -5,9 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskFlow.Domain", "TaskFlow.Domain\TaskFlow.Domain.csproj", "{DA5B116F-BCA5-45D8-B263-B0731489AEE0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ApplicationLayers", "ApplicationLayers", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{91997E2C-9CD5-4085-8168-9DDEEE43E7EB}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\..\Users\usar\OneDrive\Desktop\Database-Schema.png = ..\..\..\Users\usar\OneDrive\Desktop\Database-Schema.png
+		Docs\Database-Schema.png = Docs\Database-Schema.png
 	EndProjectSection
 EndProject
 Global
@@ -35,6 +37,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DA5B116F-BCA5-45D8-B263-B0731489AEE0} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3A79F65B-DB50-475A-9EC0-ED6314FE41F2}
