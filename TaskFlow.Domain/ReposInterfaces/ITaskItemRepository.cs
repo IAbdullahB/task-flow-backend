@@ -2,9 +2,13 @@
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Domain.RepoInterfaces;
-public interface ITaskItemRepository : IRepository<TaskItem>
+public interface ITaskItemRepository 
 {
-    void UpdateTitle(TaskItem taskItem, string newTitle);
-    void UpdateDescription(TaskItem taskItem, string? newDescription);
-    void UpdateStatus(TaskItem taskItem, bool isDone);
+    Task InsertAsync(TaskItem taskItem);
+    Task DeleteAsync(TaskItem taskItem);
+    Task<IEnumerable<TaskItem>> GetAllAsync();
+    Task<TaskItem?> GetByIdAsync(Guid id);
+    Task UpdateTitleAsync(TaskItem taskItem, string newTitle);
+    Task UpdateDescriptionAsync(TaskItem taskItem, string? newDescription);
+    Task UpdateStatusAsync(TaskItem taskItem, bool isDone);
 }

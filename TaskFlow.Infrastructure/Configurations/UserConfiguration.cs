@@ -13,7 +13,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.HasMany(u => u.TasksItems)
+        builder.HasMany(u => u.TaskItems)
         .WithOne(t => t.AssignedUser)
         .HasForeignKey(t => t.AssignedUserId);
 

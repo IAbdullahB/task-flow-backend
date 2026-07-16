@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
-using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Domain.RepoInterfaces;
-public interface IUserRepository : IRepository<User>
+public interface IUserRepository 
 {
-    UserRole? GetRoleById(Guid id);
-    void UpdateRole(User user, UserRole newRole);
+    Task InsertAsync(User user);
+    Task UpdateAsync(User user);
+    Task DeleteAsync(User user);
+    Task<IEnumerable<User>> GetAllAsync();
+    Task<User?> GetByIdAsync(Guid id);
+    Task<UserRole?> GetRoleByIdAsync(Guid id);
+    Task UpdateRoleAsync(User user, UserRole newRole);
 }

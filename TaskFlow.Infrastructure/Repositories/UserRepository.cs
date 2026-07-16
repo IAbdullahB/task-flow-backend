@@ -1,21 +1,52 @@
-﻿using TaskFlow.Domain.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
 using TaskFlow.Domain.RepoInterfaces;
 
 namespace TaskFlow.Infrastructure.Repositories;
-public class UserRepository(ApplicationDbContext context) : Repository<User>(context), IUserRepository
+public class UserRepository(ApplicationDbContext context) : IUserRepository
 {
     private readonly ApplicationDbContext _context = context;
-
-    public UserRole? GetRoleById(Guid id)
+    public async Task InsertAsync(User user)
     {
-        var user = _context.Set<User>().Find(id);
-        return user?.Role;
+        await _context.Users.AddAsync(user);
     }
 
-    public void UpdateRole(User user, UserRole newRole)
+    public async Task<IEnumerable<User>> GetAllAsync()
     {
-        user.Role = newRole;
-        _context.Set<User>().Update(user);
+        return await _context.Users.ToListAsync();
     }
+
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _context.Users.FindAsync(id);
+    }
+
+    public async Task<UserRole?> GetRoleByIdAsync(Guid id)
+    {
+        return await _context.Users
+            .Where(u => u.Id == id)
+            .Select(u => u.Role)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateRoleAsync(User user, UserRole newRole)
+    {
+        await _context.Users.Where(u => u.Id == user.Id)
+            .ExecuteUpdateAsync(u => u.SetProperty(u => u.Role, newRole));
+    }
+
+    public Task UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        return Task.CompletedTask;
+
+    }
+
+    public Task DeleteAsync(User user)
+    {
+        _context.Users.Remove(user);
+        return Task.CompletedTask;
+    }
+
 }
