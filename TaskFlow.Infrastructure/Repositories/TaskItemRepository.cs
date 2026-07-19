@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Entities;
-using TaskFlow.Domain.RepoInterfaces;
+using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.Repositories;
 public class TaskItemRepository(ApplicationDbContext context) : ITaskItemRepository 
@@ -35,26 +35,5 @@ public class TaskItemRepository(ApplicationDbContext context) : ITaskItemReposit
     {
         _context.TaskItems.Remove(taskItem);
         return Task.CompletedTask;
-    }
-
-    // here by keeping the async keyword and using .ExecuteUpdateAsync this will result in 
-    // bypassing the change tracker and executing the update in the database immediately
-    // so the update process will be not processed by the unit of work pattern 
-    public async Task UpdateDescriptionAsync(TaskItem taskItem, string? newDescription)
-    {
-        await _context.TaskItems.Where(t => t.Id == taskItem.Id)
-            .ExecuteUpdateAsync(t => t.SetProperty(t => t.Description, newDescription));
-    }
-
-    public async Task UpdateStatusAsync(TaskItem taskItem, bool isDone)
-    {
-        await _context.TaskItems.Where(t => t.Id == taskItem.Id)
-            .ExecuteUpdateAsync(t => t.SetProperty(t => t.IsDone, isDone));
-    }
-
-    public async Task UpdateTitleAsync(TaskItem taskItem, string newTitle)
-    {
-        await _context.TaskItems.Where(t => t.Id == taskItem.Id)
-            .ExecuteUpdateAsync(t => t.SetProperty(t => t.Title, newTitle));
     }
 }

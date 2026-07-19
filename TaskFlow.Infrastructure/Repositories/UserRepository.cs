@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
-using TaskFlow.Domain.RepoInterfaces;
+using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.Repositories;
 public class UserRepository(ApplicationDbContext context) : IUserRepository
@@ -24,23 +24,7 @@ public class UserRepository(ApplicationDbContext context) : IUserRepository
 
     public async Task<UserRole?> GetRoleByIdAsync(Guid id)
     {
-        return await _context.Users
-            .Where(u => u.Id == id)
-            .Select(u => u.Role)
-            .FirstOrDefaultAsync();
-    }
-
-    public async Task UpdateRoleAsync(User user, UserRole newRole)
-    {
-        await _context.Users.Where(u => u.Id == user.Id)
-            .ExecuteUpdateAsync(u => u.SetProperty(u => u.Role, newRole));
-    }
-
-    public Task UpdateAsync(User user)
-    {
-        _context.Users.Update(user);
-        return Task.CompletedTask;
-
+        return await _context.Users.Where(u => u.Id == id).Select(u => (UserRole?)u.Role).FirstOrDefaultAsync();
     }
 
     public Task DeleteAsync(User user)

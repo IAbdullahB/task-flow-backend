@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using Microsoft.EntityFrameworkCore;
 using TaskFlow.Domain.Entities;
 
 namespace TaskFlow.Infrastructure;
-public class ApplicationDbContext(DbContextOptions<DbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     override protected void OnModelCreating(ModelBuilder modelBuilder)
     {

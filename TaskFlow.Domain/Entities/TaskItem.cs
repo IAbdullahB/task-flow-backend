@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-
+﻿
 namespace TaskFlow.Domain.Entities;
 public class TaskItem
 {
