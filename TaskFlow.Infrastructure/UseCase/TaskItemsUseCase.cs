@@ -1,5 +1,6 @@
 ﻿using TaskFlow.Application.Dtos.TaskItemDtos;
 using TaskFlow.Domain.Entities;
+using TaskFlow.Domain.Enums;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -19,20 +20,11 @@ public class TaskItemsUseCase(
 
         var creatorUser = await _userRepository.GetByIdAsync(dto.CreatorUserId);
         if (creatorUser == null) throw new Exception("Wrong user ID");
-        
-        Guid assignedUserId;
-        if (creatorUser.Role == Domain.Enums.UserRole.Admin)
-        {
-            if (dto.AssignedUserId == null) throw new ArgumentException("AssignedUserId must be provided");
 
-            var assignedUser = await _userRepository.GetByIdAsync(dto.AssignedUserId.Value);
+        var assignedUserId = creatorUser.CanAssignTasksToOthers()
+        ? await ResolveAssignedUserId(dto)
+        : creatorUser.Id;
 
-            if (assignedUser == null) throw new Exception("Assigned user not found");
-            
-            assignedUserId = assignedUser.Id;
-        }
-        else assignedUserId = creatorUser.Id;
-        
 
         var taskItem = new TaskItem
         {
@@ -49,6 +41,15 @@ public class TaskItemsUseCase(
 
         return taskItem.Id;
     }
+    private async Task<Guid> ResolveAssignedUserId(CreateNewTaskDto dto)
+    {
+        if (dto.AssignedUserId == null) throw new ArgumentException("AssignedUserId must be provided");
+
+        var assignedUser = await _userRepository.GetByIdAsync(dto.AssignedUserId.Value);
+        if (assignedUser == null) throw new Exception("Assigned user not found");
+
+        return assignedUser.Id;
+    }
 
     public async Task<TaskItem> GetTaskByIdAsync(GetTaskByIdDto dto)
     {
@@ -58,7 +59,7 @@ public class TaskItemsUseCase(
         var task = await _taskItemRepository.GetByIdAsync(dto.TaskId);
         if (task == null) throw new Exception("Task not found");
 
-        if (user.Role != Domain.Enums.UserRole.Admin &&
+        if (user.Role != UserRole.Admin &&
             task.AssignedUserId != dto.RequesterUserId)
         {
             throw new Exception("Access denied");
@@ -74,7 +75,7 @@ public class TaskItemsUseCase(
 
         var allTasks = await _taskItemRepository.GetAllAsync();
 
-        if (user.Role == Domain.Enums.UserRole.Admin) return allTasks;
+        if (user.Role == UserRole.Admin) return allTasks;
         else return allTasks.Where(task => task.AssignedUserId == user.Id);
     }
 
@@ -83,7 +84,7 @@ public class TaskItemsUseCase(
         var user = await _userRepository.GetByIdAsync(dto.RequesterUserId);
         if (user == null) throw new Exception("Wrong user ID");
 
-        if (user.Role != Domain.Enums.UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
 
         var task = await _taskItemRepository.GetByIdAsync(dto.TaskId);
         if (task == null) throw new Exception("Task not found");
@@ -96,7 +97,7 @@ public class TaskItemsUseCase(
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterUserId);
         if (user == null) throw new Exception("Wrong user ID");
-        if (user.Role != Domain.Enums.UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
 
         var task = await _taskItemRepository.GetByIdAsync(dto.TaskId);
         if (task == null) throw new Exception("Task not found");

@@ -9,5 +9,6 @@ public class User
     public string HashPassword { get; set; } = string.Empty;
     public string SaltPassword { get; set; } = string.Empty;
     public UserRole Role { get; set; }
+    public bool CanAssignTasksToOthers() => Role == UserRole.Admin;
     public ICollection<TaskItem> TaskItems { get; set; } = [];
 }

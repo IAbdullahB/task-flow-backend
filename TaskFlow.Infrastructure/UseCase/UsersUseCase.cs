@@ -1,6 +1,7 @@
 ﻿
 using TaskFlow.Application.Dtos.UserDtos;
 using TaskFlow.Domain.Entities;
+using TaskFlow.Domain.Enums;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -17,7 +18,7 @@ public class UsersUseCase(
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
         if (user == null) throw new Exception("Wrong user ID");
 
-        if(user.Role != Domain.Enums.UserRole.Admin) throw new Exception("Access denied");
+        if(user.Role != UserRole.Admin) throw new Exception("Access denied");
 
         return user;
     }
@@ -27,8 +28,8 @@ public class UsersUseCase(
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
         if (user == null) throw new Exception("Wrong user ID");
 
+        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
         var allUsers = await _userRepository.GetAllAsync();
-        if (user.Role != Domain.Enums.UserRole.Admin) throw new Exception("Access denied");
 
         return allUsers;
     }
@@ -38,11 +39,12 @@ public class UsersUseCase(
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
         if (user == null) throw new Exception("Wrong user ID");
 
-        if (user.Role != Domain.Enums.UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
 
         var deletedUser = await _userRepository.GetByIdAsync(dto.UserId);
         if (deletedUser == null) throw new Exception("User not found");
 
         await _userRepository.DeleteAsync(deletedUser);
+        await _unitOfWork.SaveAsync();
     }
 }
