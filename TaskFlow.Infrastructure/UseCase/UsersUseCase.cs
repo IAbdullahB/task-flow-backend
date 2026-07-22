@@ -1,10 +1,11 @@
-﻿
-using TaskFlow.Application.Dtos.UserDtos;
+﻿using TaskFlow.Application.Dtos.UserDtos;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
+using TaskFlow.Domain.Exceptions;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
+
 public class UsersUseCase(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork
@@ -16,9 +17,9 @@ public class UsersUseCase(
     public async Task<User> GetUserByIdAsync(GetUserByIdDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
-        if (user == null) throw new Exception("Wrong user ID");
+        if (user == null) throw new NotFoundException("Wrong user ID");
 
-        if(user.Role != UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new AccessDeniedException("Access denied");
 
         return user;
     }
@@ -26,9 +27,10 @@ public class UsersUseCase(
     public async Task<IEnumerable<User>> GetUsersAsync(GetUsersDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
-        if (user == null) throw new Exception("Wrong user ID");
+        if (user == null) throw new NotFoundException("Wrong user ID");
 
-        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new AccessDeniedException("Access denied");
+
         var allUsers = await _userRepository.GetAllAsync();
 
         return allUsers;
@@ -37,12 +39,12 @@ public class UsersUseCase(
     public async Task DeleteUserAsync(DeleteUserDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
-        if (user == null) throw new Exception("Wrong user ID");
+        if (user == null) throw new NotFoundException("Wrong user ID");
 
-        if (user.Role != UserRole.Admin) throw new Exception("Access denied");
+        if (user.Role != UserRole.Admin) throw new AccessDeniedException("Access denied");
 
         var deletedUser = await _userRepository.GetByIdAsync(dto.UserId);
-        if (deletedUser == null) throw new Exception("User not found");
+        if (deletedUser == null) throw new NotFoundException("User not found");
 
         await _userRepository.DeleteAsync(deletedUser);
         await _unitOfWork.SaveAsync();

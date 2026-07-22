@@ -9,4 +9,6 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetAllAsync();
     Task<User?> GetByIdAsync(Guid id);
     Task<UserRole?> GetRoleByIdAsync(Guid id);
+    Task<bool> IsEmailExistAsync(string email);
+    Task<User?> GetByEmailAsync(string email);
 }

@@ -12,7 +12,7 @@ namespace TaskFlow.Infrastructure.Servicese;
 public class JwtService(IOptions<JwtSettings> options) : IJwtService
 {
     private readonly JwtSettings _jwtSettings = options.Value;
-    public Task<string> GenerateToken(User user, bool staySignedIn = false)
+    public string GenerateToken(User user, bool staySignedIn = false)
     {
         var claims = new List<Claim>
         {
@@ -36,7 +36,7 @@ public class JwtService(IOptions<JwtSettings> options) : IJwtService
             expires: expiration,
             signingCredentials: credentials);
 
-        return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
+        return new JwtSecurityTokenHandler().WriteToken(token);
 
     }
 
