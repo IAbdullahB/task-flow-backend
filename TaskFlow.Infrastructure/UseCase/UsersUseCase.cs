@@ -1,7 +1,7 @@
 ﻿using TaskFlow.Application.Dtos.UserDtos;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
-using TaskFlow.Domain.Exceptions;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -21,7 +21,10 @@ public class UsersUseCase(
 
         if (user.Role != UserRole.Admin) throw new AccessDeniedException("Access denied");
 
-        return user;
+        var requestedUser = await _userRepository.GetByIdAsync(dto.UserId);
+        if (requestedUser == null) throw new NotFoundException("User not found");
+
+        return requestedUser;
     }
 
     public async Task<IEnumerable<User>> GetUsersAsync(GetUsersDto dto)

@@ -1,4 +1,4 @@
-namespace TaskFlow.Domain.Exceptions;
+namespace TaskFlow.Application.Exceptions;
 
 public class ValidationException(string message) : Exception(message)
 {

@@ -1,7 +1,7 @@
 ﻿using TaskFlow.Application.Dtos.TaskItemDtos;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
-using TaskFlow.Domain.Exceptions;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -17,8 +17,6 @@ public class TaskItemsUseCase(
 
     public async Task<Guid> CreateNewTaskAsync(CreateNewTaskDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Title)) throw new ArgumentException("Title must be provided");   
-
         var creatorUser = await _userRepository.GetByIdAsync(dto.CreatorUserId);
         if (creatorUser == null) throw new NotFoundException("Wrong user ID");
 
@@ -26,12 +24,11 @@ public class TaskItemsUseCase(
         ? await ResolveAssignedUserId(dto)
         : creatorUser.Id;
 
-
         var taskItem = new TaskItem
         {
             Id = Guid.NewGuid(),
             Title = dto.Title.Trim(),
-            Description = dto.Description,
+            Description = dto.Description?.Trim(),
             DueDate = dto.DueDate,
             AssignedUserId = assignedUserId,
             IsDone = false
@@ -42,11 +39,10 @@ public class TaskItemsUseCase(
 
         return taskItem.Id;
     }
+
     private async Task<Guid> ResolveAssignedUserId(CreateNewTaskDto dto)
     {
-        if (dto.AssignedUserId == null) throw new ArgumentException("AssignedUserId must be provided");
-
-        var assignedUser = await _userRepository.GetByIdAsync(dto.AssignedUserId.Value);
+        var assignedUser = await _userRepository.GetByIdAsync(dto.AssignedUserId);
         if (assignedUser == null) throw new NotFoundException("Assigned user not found");
 
         return assignedUser.Id;
@@ -102,6 +98,7 @@ public class TaskItemsUseCase(
 
         var task = await _taskItemRepository.GetByIdAsync(dto.TaskId);
         if (task == null) throw new NotFoundException("Task not found");
+
         var newAssignedUser = await _userRepository.GetByIdAsync(dto.NewAssignedUserId);
         if (newAssignedUser == null) throw new NotFoundException("Assigned user not found");
 

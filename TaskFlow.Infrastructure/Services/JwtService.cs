@@ -8,10 +8,11 @@ using TaskFlow.Application.ServicesInterfaces;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Infrastructure.Settings;
 
-namespace TaskFlow.Infrastructure.Servicese;
+namespace TaskFlow.Infrastructure.Services;
 public class JwtService(IOptions<JwtSettings> options) : IJwtService
 {
     private readonly JwtSettings _jwtSettings = options.Value;
+
     public string GenerateToken(User user, bool staySignedIn = false)
     {
         var claims = new List<Claim>
@@ -39,7 +40,6 @@ public class JwtService(IOptions<JwtSettings> options) : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
 
     }
-
     public T ValidateToken<T>(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -49,15 +49,15 @@ public class JwtService(IOptions<JwtSettings> options) : IJwtService
         {
             tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
-                ValidateIssuer = true,
+                ValidateIssuer = _jwtSettings.ValidateIssuer,
                 ValidIssuer = _jwtSettings.ValidIssuer,
 
-                ValidateAudience = true,
+                ValidateAudience = _jwtSettings.ValidateAudience,
                 ValidAudience = _jwtSettings.ValidAudience,
 
-                ValidateLifetime = true,
+                ValidateLifetime = _jwtSettings.ValidateLifetime,
 
-                ValidateIssuerSigningKey = true,
+                ValidateIssuerSigningKey = _jwtSettings.ValidateIssuerSigningKey,
                 IssuerSigningKey = new SymmetricSecurityKey(key)
             }, out SecurityToken validatedToken);
 
@@ -66,12 +66,14 @@ public class JwtService(IOptions<JwtSettings> options) : IJwtService
             return JsonSerializer.Deserialize<T>(
                 jwtToken.Payload.SerializeToJson(),
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            ) ?? throw new Exception();
+            ) ?? throw new SecurityTokenException();
         }
-        catch
+        catch(Exception ex)
         {
-            throw new SecurityTokenException("Invalid token");
+            throw new SecurityTokenException("Invalid token", ex);
         }
 
     }
+
+
 }

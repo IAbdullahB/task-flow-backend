@@ -1,12 +1,13 @@
 ﻿
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using TaskFlow.Application.Dtos.AuthenticationDtos;
 using TaskFlow.Application.Dtos.UserDtos;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.ServicesInterfaces;
 using TaskFlow.Domain.Entities;
-using TaskFlow.Domain.Enums;
-using TaskFlow.Domain.Exceptions;
+using TaskFlow.Domain.Enums;    
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -14,29 +15,22 @@ public class AuthenticationUseCase(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IJwtService jwtService,
-    ILogger logger
+    ICacheService cacheService,
+    ILogger<AuthenticationUseCase> logger
     )
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly ICacheService _cacheService = cacheService;
     private readonly ILogger _logger = logger;
 
     public async Task<string> Register(RegisterUserDto dto, bool staySignedIn = false)
     {
-        if (string.IsNullOrWhiteSpace(dto.UserName)) throw new ArgumentException("User name is required");
-        if (string.IsNullOrWhiteSpace(dto.Email)) throw new ArgumentException("Email is required");
-        if (string.IsNullOrWhiteSpace(dto.Password)) throw new ArgumentException("Password is required");
-
         if (await _userRepository.IsEmailExistAsync(dto.Email)) throw new ConflictException("Email already exists");
 
         var salt = RandomNumberGenerator.GetBytes(16);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(
-            dto.Password,
-            salt,
-            100_000,
-            HashAlgorithmName.SHA256,
-            32);
+        var hash = HashPassword(dto.Password, salt);
 
         var user = new User
         {
@@ -51,31 +45,25 @@ public class AuthenticationUseCase(
         await _userRepository.InsertAsync(user);
         await _unitOfWork.SaveAsync();
 
-        return _jwtService.GenerateToken(user, staySignedIn);
+        string otp = Random.Shared.Next(100000, 1000000).ToString();
+        string cacheKey = $"otp:verify:{user.Email}";
+        await _cacheService.SetAsync(cacheKey, otp, TimeSpan.FromMinutes(10));
 
+        return _jwtService.GenerateToken(user, staySignedIn);
     }
 
     public async Task<string> Login(LoginUserDto dto, bool staySignedIn = false)
     {
-        if (string.IsNullOrWhiteSpace(dto.Email)) throw new ArgumentException("Email is required");
-        if (string.IsNullOrWhiteSpace(dto.Password)) throw new ArgumentException("Password is required");
-
         var user = await _userRepository.GetByEmailAsync(dto.Email);
-        if (user == null ||
-            !await _userRepository.IsEmailExistAsync(dto.Email)) throw new UnauthorizedException("Invalid email or password");
+        if (user == null) throw new UnauthorizedException("Invalid email or password");
 
         var salt = Convert.FromBase64String(user.SaltPassword);
-        var enteredHash = Rfc2898DeriveBytes.Pbkdf2(
-            dto.Password,
-            salt,
-            100_000,
-            HashAlgorithmName.SHA256,
-            32);
+        var enteredHash = HashPassword(dto.Password, salt);
 
         var actualHash = Convert.FromBase64String(user.HashPassword);
 
         if (!CryptographicOperations.FixedTimeEquals(enteredHash, actualHash))
-            throw new Exception("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
 
         return _jwtService.GenerateToken(user, staySignedIn);
     }
@@ -83,30 +71,18 @@ public class AuthenticationUseCase(
     public async Task ChangePassword(Guid requesterId, ChangePasswordDto dto)
     {
         if (requesterId == Guid.Empty) throw new ArgumentException("Invalid requester ID");
-        if (string.IsNullOrWhiteSpace(dto.CurrentPassword)) throw new ArgumentException("Old password is required");
-        if (string.IsNullOrWhiteSpace(dto.NewPassword)) throw new ArgumentException("New password is required");
-
+        
         var user = await _userRepository.GetByIdAsync(requesterId) ?? throw new NotFoundException("User not found");
 
         var salt = Convert.FromBase64String(user.SaltPassword);
-        var enteredHash = Rfc2898DeriveBytes.Pbkdf2(
-            dto.CurrentPassword,
-            salt,
-            100_000,
-            HashAlgorithmName.SHA256,
-            32);
+        var enteredHash = HashPassword(dto.CurrentPassword, salt);
 
         var actualHash = Convert.FromBase64String(user.HashPassword);
         if (!CryptographicOperations.FixedTimeEquals(enteredHash, actualHash))
             throw new UnauthorizedException("Wrong Password");
 
         var newSalt = RandomNumberGenerator.GetBytes(16);
-        var newHash = Rfc2898DeriveBytes.Pbkdf2(
-            dto.NewPassword,
-            newSalt,
-            100_000,
-            HashAlgorithmName.SHA256,
-            32);
+        var newHash = HashPassword(dto.NewPassword, newSalt);
 
         user.SaltPassword = Convert.ToBase64String(newSalt);
         user.HashPassword = Convert.ToBase64String(newHash);
@@ -124,9 +100,9 @@ public class AuthenticationUseCase(
 
         var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
 
-        user.ResetPasswordOtp = otp;
-        user.ResetPasswordOtpExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10);
-        await _unitOfWork.SaveAsync();
+        var cacheKey = $"otp:reset:{dto.Email.Trim().ToLower()}";
+
+        await _cacheService.SetAsync(cacheKey, otp, TimeSpan.FromMinutes(10));
 
         _logger.LogInformation("Password reset OTP for user {Email}: {Otp}", dto.Email, otp);
     }
@@ -140,28 +116,85 @@ public class AuthenticationUseCase(
         var user = await _userRepository.GetByEmailAsync(dto.Email);
         if (user == null) throw new NotFoundException("User not found");
 
-        if (string.IsNullOrWhiteSpace(user.ResetPasswordOtp) || user.ResetPasswordOtpExpiresAt < DateTimeOffset.UtcNow)
-            throw new UnauthorizedException("OTP expired");
+        var cacheKey = $"otp:reset:{dto.Email.Trim().ToLower()}";
+
+        var cachedOtp = await _cacheService.GetAsync<string>(cacheKey);
+
+        if (string.IsNullOrEmpty(cachedOtp) || cachedOtp != dto.Otp)
+            throw new ValidationException("The OTP is invalid or has expired.");
         
 
-        if (!string.Equals(user.ResetPasswordOtp, dto.Otp, StringComparison.Ordinal))
-            throw new UnauthorizedException("Invalid OTP");
-        
+        await _cacheService.RemoveAsync(cacheKey);
+
 
         var newSalt = RandomNumberGenerator.GetBytes(16);
-        var newHash = Rfc2898DeriveBytes.Pbkdf2(
-            dto.NewPassword,
-            newSalt,
-            100_000,
-            HashAlgorithmName.SHA256,
-            32);
+        var newHash = HashPassword(dto.NewPassword, newSalt);
 
         user.SaltPassword = Convert.ToBase64String(newSalt);
         user.HashPassword = Convert.ToBase64String(newHash);
-        user.ResetPasswordOtp = null;
-        user.ResetPasswordOtpExpiresAt = null;
 
         await _unitOfWork.SaveAsync();
+    }
+
+    private static byte[] HashPassword(string password, byte[] salt)
+    {
+        var hash = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            100_000,
+            HashAlgorithmName.SHA256,
+            32);
+        return hash;
+    }
+
+    public async Task VerifyEmail(VerifyEmailDto dto)
+    {
+        var user = await _userRepository.GetByEmailAsync(dto.Email);
+        if (user == null) throw new NotFoundException("User not found");
+        if (user.IsVerified) throw new ValidationException("Email is already verified");
+
+        string cacheKey = $"otp:verify:{user.Email}";
+
+        string? cachedOtp = await _cacheService.GetAsync<string>(cacheKey);
+        if (string.IsNullOrEmpty(cachedOtp)) throw new ValidationException("The OTP is invalid or has expired.");
+
+        if (cachedOtp != dto.Otp) throw new ValidationException("The OTP is invalid or has expired.");
+
+        user.IsVerified = true;
+        await _unitOfWork.SaveAsync();
+
+        await _cacheService.RemoveAsync(cacheKey);
+    }
+
+    public async Task ResendVerificationOtp(ResendOtpDto dto)
+    {
+        var user = await _userRepository.GetByEmailAsync(dto.Email);
+        if (user == null) throw new NotFoundException("User not found");
+        if (user.IsVerified) throw new ValidationException("Account is already verified.");
+
+        string newOtp = Random.Shared.Next(100000, 999999).ToString();
+        string cacheKey = $"otp:verify:{user.Email}";
+
+        await _cacheService.SetAsync(cacheKey, newOtp, TimeSpan.FromMinutes(10));
+    }
+
+    public async Task Logout(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token is required");
+
+        var cleanToken = token.Trim();
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(cleanToken);
+
+        var remainingTime = jwtToken.ValidTo - DateTime.UtcNow;
+
+        if (remainingTime <= TimeSpan.Zero) return;
+
+        var cacheExpiration = remainingTime.Add(TimeSpan.FromMinutes(1));
+
+        var cacheKey = $"jwt:blacklist:{cleanToken}";
+        await _cacheService.SetAsync(cacheKey, true, cacheExpiration);
     }
 
 }

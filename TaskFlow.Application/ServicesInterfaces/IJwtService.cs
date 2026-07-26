@@ -1,4 +1,5 @@
-﻿using TaskFlow.Domain.Entities;
+﻿using TaskFlow.Application.Dtos.AuthenticationDtos;
+using TaskFlow.Domain.Entities;
 
 namespace TaskFlow.Application.ServicesInterfaces;
 public interface IJwtService

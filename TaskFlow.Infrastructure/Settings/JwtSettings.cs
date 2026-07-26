@@ -3,6 +3,8 @@ public class JwtSettings
 {
     public bool ValidateIssuer { get; set; }
     public bool ValidateAudience { get; set; }
+    public bool ValidateLifetime { get; set; }
+    public bool ValidateIssuerSigningKey { get; set; }
     public string ValidAudience { get; set; } = null!;
     public string ValidIssuer { get; set; } = null!;
     public bool RequireExpirationTime { get; set; }

@@ -9,8 +9,7 @@ public class User
     public string HashPassword { get; set; } = string.Empty;
     public string SaltPassword { get; set; } = string.Empty;
     public UserRole Role { get; set; }
-    public string? ResetPasswordOtp { get; set; }
-    public DateTimeOffset? ResetPasswordOtpExpiresAt { get; set; }
+    public bool IsVerified { get; set; } = false;
     public bool CanAssignTasksToOthers() => Role == UserRole.Admin;
     public ICollection<TaskItem> TaskItems { get; set; } = [];
 }

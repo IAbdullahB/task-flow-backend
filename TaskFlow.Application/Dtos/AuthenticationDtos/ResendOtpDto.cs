@@ -1,3 +1,2 @@
 ﻿namespace TaskFlow.Application.Dtos.AuthenticationDtos;
-
-public record RequestPasswordResetDto(string Email);
+public record ResendOtpDto(string Email, string Password);

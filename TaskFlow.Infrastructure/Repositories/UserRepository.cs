@@ -35,7 +35,7 @@ public class UserRepository(ApplicationDbContext context) : IUserRepository
 
     public async Task<bool> IsEmailExistAsync(string email)
     {
-        return await Task.FromResult(_context.Users.Any(u => u.Email == email));
+        return await _context.Users.AnyAsync(u => u.Email == email);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
