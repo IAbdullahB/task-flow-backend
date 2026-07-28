@@ -33,4 +33,14 @@ public class UserRepository(ApplicationDbContext context) : IUserRepository
         return Task.CompletedTask;
     }
 
+    public async Task<bool> IsEmailExistAsync(string email)
+    {
+        return await _context.Users.AnyAsync(u => u.Email == email);
+    }
+
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+    }
+
 }
