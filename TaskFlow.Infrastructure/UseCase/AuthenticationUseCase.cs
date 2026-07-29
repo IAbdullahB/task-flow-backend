@@ -56,6 +56,7 @@ public class AuthenticationUseCase(
     {
         var user = await _userRepository.GetByEmailAsync(dto.Email);
         if (user == null) throw new UnauthorizedException("Invalid email or password");
+        if(!user.IsVerified) throw new UnauthorizedException("Email is not verified");
 
         var salt = Convert.FromBase64String(user.SaltPassword);
         var enteredHash = HashPassword(dto.Password, salt);
@@ -178,12 +179,11 @@ public class AuthenticationUseCase(
         await _cacheService.SetAsync(cacheKey, newOtp, TimeSpan.FromMinutes(10));
     }
 
-    public async Task Logout(string token)
+    public async Task Logout(LogoutUserDto dto)
     {
-        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token is required");
+        if (string.IsNullOrWhiteSpace(dto.Token)) throw new ArgumentException("Token is required");
 
-        var cleanToken = token.Trim();
-
+        var cleanToken = dto.Token.Trim();
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(cleanToken);
 

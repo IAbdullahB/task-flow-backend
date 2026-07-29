@@ -1,3 +1,3 @@
-namespace TaskFlow.Application.Dtos.UserDtos;
+namespace TaskFlow.Application.Dtos.AuthenticationDtos;
 
 public record LoginUserDto(string Email, string Password);
