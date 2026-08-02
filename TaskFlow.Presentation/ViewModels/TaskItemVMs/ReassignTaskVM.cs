@@ -4,9 +4,6 @@ namespace TaskFlow.Presentation.ViewModels.TaskItemVMs;
 
 public class ReassignTaskVM
 {
-    [Required(ErrorMessage = "Requester user ID is required.")]
-    public Guid RequesterUserId { get; set; }
-
     [Required(ErrorMessage = "Task ID is required.")]
     public Guid TaskId { get; set; }
 

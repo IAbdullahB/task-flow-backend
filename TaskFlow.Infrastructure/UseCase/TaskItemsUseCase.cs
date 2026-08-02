@@ -1,7 +1,8 @@
-﻿using TaskFlow.Application.Dtos.TaskItemDtos;
+﻿using TaskFlow.Application.Dtos.RequestDtos.TaskItemDtos;
+using TaskFlow.Application.Dtos.ResponseDtos.TaskItemDtos;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
-using TaskFlow.Application.Exceptions;
 using TaskFlow.Domain.ReposInterfaces;
 
 namespace TaskFlow.Infrastructure.UseCase;
@@ -20,8 +21,11 @@ public class TaskItemsUseCase(
         var creatorUser = await _userRepository.GetByIdAsync(dto.CreatorUserId);
         if (creatorUser == null) throw new NotFoundException("Wrong user ID");
 
+        if (creatorUser.CanAssignTasksToOthers() && dto.AssignedUserId == null)
+         throw new ArgumentException("Assigned User ID is required when you have permission to assign tasks.");
+        
         var assignedUserId = creatorUser.CanAssignTasksToOthers()
-        ? await ResolveAssignedUserId(dto)
+        ? await ResolveAssignedUserId(dto.AssignedUserId!.Value)
         : creatorUser.Id;
 
         var taskItem = new TaskItem
@@ -40,15 +44,15 @@ public class TaskItemsUseCase(
         return taskItem.Id;
     }
 
-    private async Task<Guid> ResolveAssignedUserId(CreateNewTaskDto dto)
+    private async Task<Guid> ResolveAssignedUserId(Guid assignedUserId)
     {
-        var assignedUser = await _userRepository.GetByIdAsync(dto.AssignedUserId);
+        var assignedUser = await _userRepository.GetByIdAsync(assignedUserId);
         if (assignedUser == null) throw new NotFoundException("Assigned user not found");
 
         return assignedUser.Id;
     }
 
-    public async Task<TaskItem> GetTaskByIdAsync(GetTaskByIdDto dto)
+    public async Task<TaskResponseDto> GetTaskByIdAsync(GetTaskByIdDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterUserId);
         if (user == null) throw new NotFoundException("Wrong user ID");
@@ -62,18 +66,37 @@ public class TaskItemsUseCase(
             throw new AccessDeniedException("Access denied");
         }
 
-        return task;
+        return new TaskResponseDto(
+            task.Id,
+            task.Title,
+            task.Description ?? string.Empty,
+            task.IsDone,
+            task.DueDate,
+            task.AssignedUserId,
+            task.AssignedUser?.UserName 
+        );
     }
 
-    public async Task<IEnumerable<TaskItem>> GetAllTasksAsync(GetAllTasksDto dto)
+    public async Task<IEnumerable<TaskResponseDto>> GetAllTasksAsync(GetAllTasksDto dto)
     {
         var user = await _userRepository.GetByIdAsync(dto.RequesterId);
         if (user == null) throw new NotFoundException("Wrong user ID");
 
         var allTasks = await _taskItemRepository.GetAllAsync();
 
-        if (user.Role == UserRole.Admin) return allTasks;
-        else return allTasks.Where(task => task.AssignedUserId == user.Id);
+        var filteredTasks = user.Role == UserRole.Admin
+        ? allTasks
+        : allTasks.Where(task => task.AssignedUserId == user.Id);
+
+        return filteredTasks.Select(task => new TaskResponseDto(
+            task.Id,
+            task.Title,
+            task.Description ?? string.Empty,
+            task.IsDone,
+            task.DueDate,
+            task.AssignedUserId,
+            task.AssignedUser?.UserName
+        ));
     }
 
     public async Task DeleteTaskAsync(DeleteTaskDto dto)

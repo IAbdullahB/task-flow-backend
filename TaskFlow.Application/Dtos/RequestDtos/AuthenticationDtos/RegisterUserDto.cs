@@ -1,4 +1,4 @@
-namespace TaskFlow.Application.Dtos.AuthenticationDtos;
+namespace TaskFlow.Application.Dtos.RequestDtos.AuthenticationDtos;
 
 public record RegisterUserDto(
     string UserName,

@@ -1,8 +1,8 @@
-﻿using TaskFlow.Application.Dtos.UserDtos;
-using TaskFlow.Domain.Entities;
+﻿using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
 using TaskFlow.Application.Exceptions;
 using TaskFlow.Domain.ReposInterfaces;
+using TaskFlow.Application.Dtos.RequestDtos.UserDtos;
 
 namespace TaskFlow.Infrastructure.UseCase;
 

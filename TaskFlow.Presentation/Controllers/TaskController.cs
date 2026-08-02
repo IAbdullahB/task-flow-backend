@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskFlow.Application.Dtos.TaskItemDtos;
+using TaskFlow.Application.Dtos.RequestDtos.TaskItemDtos;
 using TaskFlow.Infrastructure.UseCase;
 using TaskFlow.Presentation.ViewModels.TaskItemVMs;
 
@@ -27,7 +27,7 @@ public class TaskController(
             AssignedUserId: vm.AssignedUserId,
             Title: vm.Title,
             Description: vm.Description,
-            DueDate: vm.DueDate);
+            DueDate: vm.DueDate!.Value);
 
         var result = await _taskUseCase.CreateNewTaskAsync(dto);
 
@@ -45,7 +45,7 @@ public class TaskController(
         var userId = Guid.Parse(userIdString!);
 
         var dto = new GetTaskByIdDto(userId, taskId);
-
+            
         var result = await _taskUseCase.GetTaskByIdAsync(dto);
 
         return Ok(new

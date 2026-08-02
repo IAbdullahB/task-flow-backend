@@ -4,8 +4,7 @@ namespace TaskFlow.Presentation.ViewModels.TaskItemVMs;
 
 public class CreateNewTaskVM
 {
-    [Required(ErrorMessage = "Assigned User ID is required.")]
-    public Guid AssignedUserId { get; set; }
+    public Guid? AssignedUserId { get; set; }
 
     [Required(ErrorMessage = "Title is required.")]
     [StringLength(50, ErrorMessage = "Title cannot exceed 50 characters.")]
@@ -16,7 +15,5 @@ public class CreateNewTaskVM
 
     [Required(ErrorMessage = "Due date is required.")]
     [DataType(DataType.Date)]
-    public DateTime DueDate { get; set; }
-
-    
+    public DateTime? DueDate { get; set; }
 }

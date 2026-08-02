@@ -1,17 +1,17 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskFlow.Application.Dtos.UserDtos;
+using TaskFlow.Application.Dtos.RequestDtos.UserDtos;
 using TaskFlow.Infrastructure.UseCase;
 
 namespace TaskFlow.Presentation.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class UsersController(UsersUseCase usersUseCase) : ControllerBase
+public class UserController(UsersUseCase usersUseCase) : ControllerBase
 {
     private readonly UsersUseCase _usersUseCase = usersUseCase;
-
+        
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetUserById([FromRoute] Guid userId)
     {

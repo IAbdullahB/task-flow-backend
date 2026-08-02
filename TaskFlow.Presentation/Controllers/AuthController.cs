@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskFlow.Application.Dtos.AuthenticationDtos;
+using TaskFlow.Application.Dtos.RequestDtos.AuthenticationDtos;
 using TaskFlow.Infrastructure.UseCase;
 using TaskFlow.Presentation.ViewModels.AuthenticationVMs;
 
@@ -20,13 +20,23 @@ public class AuthController(
     {
         var dto = new RegisterUserDto(vm.UserName, vm.Email, vm.Password);
 
-        var result = await _authUseCase.Register(dto);
+        await _authUseCase.Register(dto);
 
         return Created("", new
         {
             message = "User registered successfully," +
             " please check your email for the verification OTP",
-            data = result
+        });
+    }
+
+    [HttpPost("verify")]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailVM vm)
+    {
+        var dto = new VerifyEmailDto(vm.Email, vm.Otp);
+        await _authUseCase.VerifyEmail(dto);
+        return Ok(new
+        {
+            message = "Email verified successfully :).",
         });
     }
 
@@ -40,7 +50,7 @@ public class AuthController(
         return Ok(new
         {
             message = "User logged in successfully :D.",
-            data = result
+            token = result
         });
     }
 
@@ -61,7 +71,6 @@ public class AuthController(
         });
     }
 
-    [Authorize]
     [HttpPost("request-password-reset")]
     public async Task<IActionResult> RequestPasswordReset([FromBody] RequestPasswordResetVM vm)
     {
@@ -76,14 +85,16 @@ public class AuthController(
         });
     }
 
-    [HttpPost("verify-email")]
-    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailVM vm)
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordVM vm)
     {
-        var dto = new VerifyEmailDto(vm.Email, vm.Otp);
-        await _authUseCase.VerifyEmail(dto);
+        var dto = new ResetPasswordDto(vm.Email, vm.Otp, vm.NewPassword);
+
+        await _authUseCase.ResetPassword(dto);
+
         return Ok(new
-        {
-            message = "Email verified successfully :).",
+        { 
+            message = "Password has been successfully reset." 
         });
     }
     
@@ -100,10 +111,11 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] LogoutUserVM vm)
+    public async Task<IActionResult> Logout()
     {
-        var dto = new LogoutUserDto(vm.Token);
-
+        var token = Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+        var dto = new LogoutUserDto(token);
+           
         await _authUseCase.Logout(dto);
         return Ok(new
         {

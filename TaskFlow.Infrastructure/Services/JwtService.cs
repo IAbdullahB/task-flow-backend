@@ -9,9 +9,10 @@ using TaskFlow.Domain.Entities;
 using TaskFlow.Infrastructure.Settings;
 
 namespace TaskFlow.Infrastructure.Services;
-public class JwtService(IOptions<JwtSettings> options) : IJwtService
+public class JwtService(IOptions<JwtSettings> options, ICacheService cacheService) : IJwtService
 {
     private readonly JwtSettings _jwtSettings = options.Value;
+    private readonly ICacheService _cacheService = cacheService;
 
     public string GenerateToken(User user, bool staySignedIn = false)
     {
@@ -40,14 +41,20 @@ public class JwtService(IOptions<JwtSettings> options) : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
 
     }
-    public T ValidateToken<T>(string token)
+    public async Task<T> ValidateToken<T>(string token)
     {
+        var cleanToken = token.Trim();
+        var cacheKey = $"jwt:blacklist:{cleanToken}";
+        var isBlacklisted = await _cacheService.GetAsync<bool>(cacheKey);
+
+        if (isBlacklisted) throw new SecurityTokenException("Token has been revoked.");
+        
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
 
         try
         {
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            tokenHandler.ValidateToken(cleanToken, new TokenValidationParameters
             {
                 ValidateIssuer = _jwtSettings.ValidateIssuer,
                 ValidIssuer = _jwtSettings.ValidIssuer,

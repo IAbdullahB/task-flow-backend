@@ -1,7 +1,7 @@
-﻿namespace TaskFlow.Application.Dtos.TaskItemDtos;
+﻿namespace TaskFlow.Application.Dtos.RequestDtos.TaskItemDtos;
 public record CreateNewTaskDto(
     Guid CreatorUserId,
-    Guid AssignedUserId,
+    Guid? AssignedUserId,
     string Title,
     string Description,
     DateTime DueDate);

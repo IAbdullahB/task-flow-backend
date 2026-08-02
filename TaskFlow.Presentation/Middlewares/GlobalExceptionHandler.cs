@@ -59,11 +59,6 @@ public class GlobalExceptionHandler(
                 message = validationException.Message;
                 break;
 
-            case Exception genericExeption:
-                statusCode = (int)HttpStatusCode.InternalServerError;
-                message = genericExeption.Message;
-                break;
-
             default:
                 statusCode = (int)HttpStatusCode.InternalServerError;
                 break;
@@ -77,7 +72,12 @@ public class GlobalExceptionHandler(
             Message = message
         };
 
-        var jsonResponse = JsonSerializer.Serialize(response);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var jsonResponse = JsonSerializer.Serialize(response, options);
         await context.Response.WriteAsync(jsonResponse);
     }
 }
