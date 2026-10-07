@@ -7,6 +7,6 @@ public class TaskItem
     public string? Description { get; set; }
     public bool IsDone { get; set; } = false;
     public DateTime? DueDate { get; set; }
-    public Guid AssignedUserId { get; set; }
+    public Guid? AssignedUserId { get; set; }
     public User AssignedUser { get; set; } = null!;
 }

@@ -2,13 +2,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
-using TaskFlow.Application.Dtos.AuthenticationDtos;
-using TaskFlow.Application.Dtos.UserDtos;
+using TaskFlow.Application.Dtos.RequestDtos.AuthenticationDtos;
 using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.ServicesInterfaces;
 using TaskFlow.Domain.Entities;
-using TaskFlow.Domain.Enums;    
+using TaskFlow.Domain.Enums;
 using TaskFlow.Domain.ReposInterfaces;
+using static System.Net.WebRequestMethods;
 
 namespace TaskFlow.Infrastructure.UseCase;
 public class AuthenticationUseCase(
@@ -25,7 +25,7 @@ public class AuthenticationUseCase(
     private readonly ICacheService _cacheService = cacheService;
     private readonly ILogger _logger = logger;
 
-    public async Task<string> Register(RegisterUserDto dto, bool staySignedIn = false)
+    public async Task Register(RegisterUserDto dto, bool staySignedIn = false)
     {
         if (await _userRepository.IsEmailExistAsync(dto.Email)) throw new ConflictException("Email already exists");
 
@@ -47,15 +47,17 @@ public class AuthenticationUseCase(
 
         string otp = Random.Shared.Next(100000, 1000000).ToString();
         string cacheKey = $"otp:verify:{user.Email}";
+
         await _cacheService.SetAsync(cacheKey, otp, TimeSpan.FromMinutes(10));
 
-        return _jwtService.GenerateToken(user, staySignedIn);
+        _logger.LogInformation("Verification OTP for user {Email}: {Otp}", user.Email, otp);
     }
 
     public async Task<string> Login(LoginUserDto dto, bool staySignedIn = false)
     {
         var user = await _userRepository.GetByEmailAsync(dto.Email);
         if (user == null) throw new UnauthorizedException("Invalid email or password");
+        if(!user.IsVerified) throw new UnauthorizedException("Email is not verified");
 
         var salt = Convert.FromBase64String(user.SaltPassword);
         var enteredHash = HashPassword(dto.Password, salt);
@@ -107,7 +109,7 @@ public class AuthenticationUseCase(
         _logger.LogInformation("Password reset OTP for user {Email}: {Otp}", dto.Email, otp);
     }
 
-    public async Task ForgotPassword(ResetPasswordDto dto)
+    public async Task ResetPassword(ResetPasswordDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Email)) throw new ArgumentException("Email is required");
         if (string.IsNullOrWhiteSpace(dto.Otp)) throw new ArgumentException("OTP is required");
@@ -172,18 +174,27 @@ public class AuthenticationUseCase(
         if (user == null) throw new NotFoundException("User not found");
         if (user.IsVerified) throw new ValidationException("Account is already verified.");
 
+        var salt = Convert.FromBase64String(user.SaltPassword);
+        var enteredHash = HashPassword(dto.Password, salt);
+
+        var actualHash = Convert.FromBase64String(user.HashPassword);
+
+        if (!CryptographicOperations.FixedTimeEquals(enteredHash, actualHash))
+            throw new UnauthorizedException("Invalid email or password");
+
         string newOtp = Random.Shared.Next(100000, 999999).ToString();
         string cacheKey = $"otp:verify:{user.Email}";
 
         await _cacheService.SetAsync(cacheKey, newOtp, TimeSpan.FromMinutes(10));
+
+        _logger.LogInformation("Password reset OTP for user {Email}: {Otp}", dto.Email, newOtp);
     }
 
-    public async Task Logout(string token)
+    public async Task Logout(LogoutUserDto dto)
     {
-        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token is required");
+        if (string.IsNullOrWhiteSpace(dto.Token)) throw new ArgumentException("Token is required");
 
-        var cleanToken = token.Trim();
-
+        var cleanToken = dto.Token.Trim();
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(cleanToken);
 
