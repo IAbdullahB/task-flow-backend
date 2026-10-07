@@ -4,6 +4,19 @@ REST API for **TaskFlow**, a task-management application with JWT authentication
 
 Built with **ASP.NET Core 9** using a layered architecture (Domain, Application, Infrastructure, Presentation, Host).
 
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=cs,dotnet&theme=light" alt="Core technologies" />
+</p>
+
+<p align="center">
+  <img alt="ASP.NET Core 9" src="https://img.shields.io/badge/ASP.NET_Core-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" />
+  <img alt="Entity Framework Core" src="https://img.shields.io/badge/EF_Core-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" />
+  <img alt="SQL Server" src="https://img.shields.io/badge/SQL_Server-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white" />
+  <img alt="JWT" src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" />
+  <img alt="OpenAPI" src="https://img.shields.io/badge/OpenAPI-6BA539?style=for-the-badge&logo=openapiinitiative&logoColor=white" />
+  <img alt="Scalar" src="https://img.shields.io/badge/Scalar-1B1B1F?style=for-the-badge&logo=swagger&logoColor=white" />
+</p>
+
 ## Features
 
 - **Authentication** — Register, email verification (OTP), login, logout, change password, password reset
